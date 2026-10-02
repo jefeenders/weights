@@ -88,6 +88,23 @@ function todayCard(ex) {
     </section>`;
 }
 
+function todaySummaryRow(ex) {
+  const sets = S.todaysSets(data, ex.id);
+  return sets.length ? `<div class="log-row"><span>${esc(ex.name)}</span><span>${S.summariseSets(sets)}</span></div>` : '';
+}
+
+function todaySummary() {
+  const rows = data.exercises.map(todaySummaryRow).join('');
+  return rows ? `<section class="card"><h2>Today</h2>${rows}</section>` : '';
+}
+
+function repeatButton(ex) {
+  const last = S.todaysSets(data, ex.id).at(-1);
+  return last
+    ? `<button class="btn btn--accent" data-action="repeat">Repeat set: ${S.formatKg(last.weight)} kg × ${last.reps}</button>`
+    : '';
+}
+
 // ---------- screens ----------
 
 function listScreen() {
@@ -98,7 +115,8 @@ function listScreen() {
       <button class="icon-btn icon-btn--accent" data-action="edit" aria-label="Add or edit exercises">${ICONS.plus}</button>
     </header>
     ${S.isBackupDue(data) ? backupBanner() : ''}
-    <div class="stack">${tiles || '<p class="empty">No exercises yet. Tap + to add your first one.</p>'}</div>`;
+    <div class="stack">${tiles || '<p class="empty">No exercises yet. Tap + to add your first one.</p>'}</div>
+    ${todaySummary()}`;
 }
 
 function editScreen() {
@@ -146,6 +164,7 @@ function weightScreen(ex) {
   return `
     ${backButton('Exercises', 'home')}
     <header class="title"><h1>${esc(ex.name)}</h1><p>${subtitle}</p></header>
+    ${repeatButton(ex)}
     <div class="bar">
       <h2>Weight (kg)</h2>
       <button class="chip" data-action="lighter" ${options[0] === 0 ? 'disabled' : ''}>Show lighter</button>
@@ -202,6 +221,11 @@ function logSet(reps) {
   go({ screen: 'weight', lighterRows: 0 });
 }
 
+function repeatSet() {
+  const last = S.todaysSets(data, view.exerciseId).at(-1);
+  if (last) commit(S.addSet(data, view.exerciseId, last.weight, last.reps));
+}
+
 const ACTIONS = {
   home: () => go({ screen: 'list', exerciseId: null }),
   edit: () => go({ screen: 'edit' }),
@@ -210,6 +234,7 @@ const ACTIONS = {
   weight: (el) => go({ screen: 'reps', weight: Number(el.dataset.kg) }),
   'to-weight': () => go({ screen: 'weight' }),
   reps: (el) => logSet(Number(el.dataset.reps)),
+  repeat: () => repeatSet(),
   undo: () => commit(S.removeLastSet(data, view.exerciseId)),
   up: (el) => commit(S.moveExercise(data, el.dataset.id, -1)),
   down: (el) => commit(S.moveExercise(data, el.dataset.id, 1)),

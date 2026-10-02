@@ -69,6 +69,18 @@ const isSameDay = (a, b) => a.toDateString() === b.toDateString();
 export const todaysSets = (data, exerciseId, now = new Date()) =>
   setsFor(data, exerciseId).filter((s) => isSameDay(new Date(s.at), now));
 
+// Consecutive identical sets collapse into one group: 10×5, 10×5, 12.5×4 -> [2 × 10×5, 1 × 12.5×4].
+const sameSet = (a, b) => a.weight === b.weight && a.reps === b.reps;
+export const groupSets = (sets) =>
+  sets.reduce((groups, s) => {
+    const last = groups.at(-1);
+    return last && sameSet(last, s)
+      ? [...groups.slice(0, -1), { ...last, count: last.count + 1 }]
+      : [...groups, { weight: s.weight, reps: s.reps, count: 1 }];
+  }, []);
+export const summariseSets = (sets) =>
+  groupSets(sets).map((g) => `${g.count} × ${formatKg(g.weight)} kg × ${g.reps}`).join(', ');
+
 // Weight grid: starts at the last weight, each "lighter" press adds one row below it.
 export function weightOptions(last, step, lighterRows, count = 20, columns = 4) {
   const start = Math.max(0, roundKg(last - lighterRows * columns * step));
